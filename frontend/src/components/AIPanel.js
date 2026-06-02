@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /* ─── Tokens ──────────────────────────────────────────── */
 const C = {
@@ -9,7 +10,6 @@ const C = {
   muted:      'rgba(250,247,242,0.45)',
   faint:      'rgba(250,247,242,0.08)',
   panelBg:    '#110C08',
-  panelBorder:'rgba(184,148,74,0.20)',
   userBubble: '#B8944A',
   aiBubble:   'rgba(250,247,242,0.07)',
   errorBubble:'rgba(192,83,58,0.15)',
@@ -17,22 +17,45 @@ const C = {
 const dm = "'DM Sans', sans-serif";
 const pf = "'Playfair Display', serif";
 
-/* ─── Backend URL ─────────────────────────────────────── */
-// package.json "proxy": "http://localhost:8001" ile çalışır.
-// Prod ortamında REACT_APP_API_URL env değişkeninden alınır.
-const API_BASE = process.env.REACT_APP_API_URL || '';
-const AI_ENDPOINT = `${API_BASE}/api/ai-assistant`;
+/* ─── System prompt ───────────────────────────────────── */
+const SYSTEM_PROMPT = `Sen "Prof. Kültür" adında bir Kültür Koruma Akademisi yapay zeka asistanısın.
 
-/* ─── Quick suggestion chips ──────────────────────────── */
+Uzmanlık alanların: Türk kültür mirası, UNESCO Dünya Mirası alanları, arkeoloji, restorasyon teknikleri (Paraloid B-72, B-48N vb.), Osmanlı ve Selçuklu mimarisi, Anadolu medeniyetleri, müze yönetimi, KTVKK 2863.
+
+Kurallar:
+1. Her zaman Türkçe yanıt ver
+2. Kısa, net ve bilgilendirici ol (maksimum 3-4 paragraf)  
+3. Somut örnekler ve Türkiye'den vakalar kullan
+4. Uydurma bilgi verme; emin olmadığında "Bu konuyu kaynaklardan teyit etmenizi öneririm" de
+5. Emoji kullanımı: Az ama etkili (💡🏛️📜⚗️🔍)
+
+Karakter: Prof. Kültür — sıcak, meraklı, öğretmeyi seven bir akademisyen.`;
+
+/* ─── Gemini init ─────────────────────────────────────── */
+let _model = null;
+function getModel() {
+  if (!_model) {
+    const key = process.env.REACT_APP_GEMINI_API_KEY;
+    if (!key) return null;
+    const genAI = new GoogleGenerativeAI(key);
+    _model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: SYSTEM_PROMPT,
+    });
+  }
+  return _model;
+}
+
+/* ─── Quick suggestions ───────────────────────────────── */
 const SUGGESTIONS = [
   'Paraloid B-72 vs B-48N',
-  'Göbekli Tepe kireçtaşı koruma',
+  'Göbekli Tepe koruma',
   'UNESCO tescil süreci',
-  'Mozaik restorasyon teknikleri',
-  'Osmanlı çini glazür analizi',
+  'Mozaik restorasyon',
+  'Osmanlı çini analizi',
 ];
 
-/* ─── Typing Indicator ────────────────────────────────── */
+/* ─── Typing dots ─────────────────────────────────────── */
 function TypingDots() {
   return (
     <div style={{
@@ -58,37 +81,34 @@ function TypingDots() {
 function Bubble({ msg }) {
   const isUser  = msg.role === 'user';
   const isError = msg.role === 'error';
-
   return (
     <div style={{
       display: 'flex',
       justifyContent: isUser ? 'flex-end' : 'flex-start',
       animation: 'msgIn 0.3s ease',
     }}>
-      {/* AI/Error avatar */}
       {!isUser && (
         <div style={{
-          width: '22px', height: '22px', borderRadius: '8px', flexShrink: 0,
+          width: '24px', height: '24px', borderRadius: '8px', flexShrink: 0,
           background: isError ? 'rgba(192,83,58,0.2)' : 'rgba(184,148,74,0.15)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '11px', marginRight: '6px', marginTop: '2px',
+          fontSize: '13px', marginRight: '8px', marginTop: '2px',
           alignSelf: 'flex-start',
         }}>
           {isError ? '⚠️' : '🦉'}
         </div>
       )}
-
       <div style={{
-        maxWidth: '78%',
-        padding: '9px 12px',
-        borderRadius: isUser ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
+        maxWidth: '80%',
+        padding: '10px 14px',
+        borderRadius: isUser ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
         background: isUser
           ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`
           : isError ? C.errorBubble : C.aiBubble,
         border: !isUser ? `0.5px solid ${C.faint}` : 'none',
-        fontFamily: dm, fontSize: '11px', lineHeight: 1.6,
+        fontFamily: dm, fontSize: '13px', lineHeight: 1.6,
         color: isUser ? C.charcoal : C.parchment,
-        whiteSpace: 'pre-wrap',          // preserve line breaks in AI response
+        whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
       }}>
         {msg.text}
@@ -97,81 +117,54 @@ function Bubble({ msg }) {
   );
 }
 
-/* ─── Main AI Panel ───────────────────────────────────── */
+/* ─── Main component ──────────────────────────────────── */
 export default function AIPanel() {
-  const [messages, setMessages] = useState([
-    {
-      id: 1, role: 'ai',
-      text: 'Merhaba! Ben Kültür Koruma Akademisi\'nin AI hoca asistanıyım. 🏛️\n\nArkeoloji, restorasyon teknikleri veya Türk kültür mirası hakkında sorularınızı yanıtlayabilirim. Size nasıl yardımcı olabilirim?',
-    },
-  ]);
-  const [input,           setInput]           = useState('');
-  const [isTyping,        setIsTyping]         = useState(false);
-  const [showSuggestions, setShowSuggestions]  = useState(true);
-  const [sessionId]                            = useState(() => crypto.randomUUID());
-  const bottomRef  = useRef(null);
-  const inputRef   = useRef(null);
+  const [messages, setMessages] = useState([{
+    id: 1, role: 'ai',
+    text: 'Merhaba! Ben Kültür Koruma Akademisi\'nin AI hoca asistanıyım. 🏛️\n\nArkeoloji, restorasyon teknikleri veya Türk kültür mirası hakkında sorularınızı yanıtlayabilirim.',
+  }]);
+  const [input,           setInput]          = useState('');
+  const [isTyping,        setIsTyping]        = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [chat,            setChat]            = useState(null);
+  const bottomRef = useRef(null);
+  const inputRef  = useRef(null);
 
-  /* Auto-scroll to latest message */
+  /* Init Gemini chat session once */
+  useEffect(() => {
+    const model = getModel();
+    if (model) setChat(model.startChat({ history: [] }));
+  }, []);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  /* Core send function — calls real backend */
   const sendMessage = useCallback(async (text) => {
     const trimmed = text.trim();
     if (!trimmed || isTyping) return;
 
     setShowSuggestions(false);
     setInput('');
-
-    // 1. Append user bubble immediately
-    const userMsg = { id: Date.now(), role: 'user', text: trimmed };
-    setMessages(prev => [...prev, userMsg]);
-
-    // 2. Show typing indicator
+    setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: trimmed }]);
     setIsTyping(true);
 
     try {
-      const res = await fetch(AI_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed, session_id: sessionId }),
-      });
-
-      if (!res.ok) {
-        // Try to parse error detail from FastAPI
-        let detail = `Sunucu hatası (${res.status})`;
-        try {
-          const errData = await res.json();
-          detail = errData.detail || detail;
-        } catch (_) { /* ignore */ }
-        throw new Error(detail);
-      }
-
-      const data = await res.json();
-      const aiText = data.response || 'Yanıt alınamadı.';
-
-      setIsTyping(false);
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText }]);
-
+      if (!chat) throw new Error('Gemini API anahtarı yapılandırılmamış (REACT_APP_GEMINI_API_KEY).');
+      const result = await chat.sendMessage(trimmed);
+      const answer = result.response.text().trim() || 'Yanıt alınamadı.';
+      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: answer }]);
     } catch (err) {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 2, role: 'error',
+        text: `Hata: ${err.message}`,
+      }]);
+    } finally {
       setIsTyping(false);
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now() + 2,
-          role: 'error',
-          text: `Bağlantı hatası: ${err.message}\n\nBackend çalışıyor mu? (cd backend && uvicorn server:app --port 8001)`,
-        },
-      ]);
     }
-  }, [isTyping, sessionId]);
+  }, [chat, isTyping]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    sendMessage(input);
-  };
+  const handleSubmit = (e) => { e.preventDefault(); sendMessage(input); };
 
   return (
     <>
@@ -192,136 +185,100 @@ export default function AIPanel() {
       `}</style>
 
       <div style={{
-        width: '260px', height: '620px',
-        borderRadius: '24px',
-        background: C.panelBg,
-        border: `0.5px solid ${C.panelBorder}`,
-        boxShadow: '0 0 0 0.5px rgba(184,148,74,0.12), 0 24px 60px rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         display: 'flex', flexDirection: 'column',
-        overflow: 'hidden', flexShrink: 0,
+        height: '100%', overflow: 'hidden',
+        background: C.panelBg,
       }}>
-
-        {/* ── Header ───────────────────────────────────── */}
+        {/* ── Header ── */}
         <div style={{
-          padding: '16px 16px 12px',
+          padding: '16px 20px 12px',
           borderBottom: `0.5px solid ${C.faint}`,
           flexShrink: 0,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Avatar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              width: '38px', height: '38px', borderRadius: '12px', flexShrink: 0,
+              width: '42px', height: '42px', borderRadius: '14px', flexShrink: 0,
               background: 'linear-gradient(135deg,#2A1A0A,#1A0C06)',
               border: `0.5px solid rgba(184,148,74,0.3)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '20px',
-            }}>
-              🦉
-            </div>
-
+              fontSize: '22px',
+            }}>🦉</div>
             <div style={{ flex: 1 }}>
-              <h3 style={{ fontFamily: pf, fontSize: '14px', fontWeight: 600, color: C.parchment, lineHeight: 1.2 }}>
+              <h3 style={{ fontFamily: pf, fontSize: '16px', fontWeight: 600, color: C.parchment, margin: 0 }}>
                 AI Hoca Asistan
               </h3>
-              <p style={{ fontFamily: dm, fontSize: '9.5px', color: C.muted, marginTop: '1px' }}>
+              <p style={{ fontFamily: dm, fontSize: '11px', color: C.muted, margin: '2px 0 0' }}>
                 Kültür koruma uzmanı
               </p>
             </div>
-
-            {/* Online badge */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '5px',
-              background: 'rgba(52,199,89,0.12)', borderRadius: '999px', padding: '4px 8px',
+              background: 'rgba(52,199,89,0.12)', borderRadius: '999px', padding: '5px 10px',
               border: '0.5px solid rgba(52,199,89,0.25)',
             }}>
               <div style={{
-                width: '6px', height: '6px', borderRadius: '50%',
+                width: '7px', height: '7px', borderRadius: '50%',
                 background: '#34C759', animation: 'onlinePulse 2s infinite',
               }} />
-              <span style={{ fontFamily: dm, fontSize: '9px', fontWeight: 600, color: '#34C759' }}>
+              <span style={{ fontFamily: dm, fontSize: '10px', fontWeight: 600, color: '#34C759' }}>
                 Çevrimiçi
               </span>
             </div>
           </div>
 
           {/* Topic chips */}
-          <div style={{ display: 'flex', gap: '5px', marginTop: '10px', flexWrap: 'wrap' }}>
-            {['Arkeoloji', 'Restorasyon', 'UNESCO', 'Tarihi Eser'].map(t => (
-              <span key={t} style={{
-                fontFamily: dm, fontSize: '8.5px', color: C.goldLight,
+          <div style={{ display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }}>
+            {['Arkeoloji', 'Restorasyon', 'UNESCO', 'Tarihi Eser'].map(tag => (
+              <span key={tag} style={{
+                fontFamily: dm, fontSize: '10px', color: C.goldLight,
                 background: 'rgba(184,148,74,0.1)',
                 border: '0.5px solid rgba(184,148,74,0.2)',
-                borderRadius: '999px', padding: '2px 7px',
-              }}>
-                {t}
-              </span>
+                borderRadius: '999px', padding: '3px 9px',
+              }}>{tag}</span>
             ))}
           </div>
         </div>
 
-        {/* ── Messages ─────────────────────────────────── */}
+        {/* ── Messages ── */}
         <div style={{
           flex: 1, overflowY: 'auto', overflowX: 'hidden',
-          padding: '12px 12px 8px',
-          display: 'flex', flexDirection: 'column', gap: '10px',
+          padding: '16px 16px 8px',
+          display: 'flex', flexDirection: 'column', gap: '12px',
           scrollbarWidth: 'none',
         }}>
           {messages.map(msg => <Bubble key={msg.id} msg={msg} />)}
-
-          {/* Typing indicator */}
           {isTyping && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', animation: 'msgIn 0.3s ease' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', animation: 'msgIn 0.3s ease' }}>
               <div style={{
-                width: '22px', height: '22px', borderRadius: '8px', flexShrink: 0,
+                width: '24px', height: '24px', borderRadius: '8px', flexShrink: 0,
                 background: 'rgba(184,148,74,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '11px',
-              }}>
-                🦉
-              </div>
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px',
+              }}>🦉</div>
               <TypingDots />
             </div>
           )}
-
           <div ref={bottomRef} />
         </div>
 
-        {/* ── Quick Suggestions ────────────────────────── */}
+        {/* ── Quick suggestions ── */}
         {showSuggestions && (
-          <div style={{ padding: '0 10px 8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            <p style={{ fontFamily: dm, fontSize: '9px', color: C.muted, marginBottom: '6px', paddingLeft: '2px' }}>
+          <div style={{ padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+            <p style={{ fontFamily: dm, fontSize: '10px', color: C.muted, marginBottom: '8px' }}>
               Hızlı sorular:
             </p>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap' }}>
+            <div style={{ display: 'flex', gap: '7px', flexWrap: 'nowrap' }}>
               {SUGGESTIONS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => sendMessage(s)}
-                  disabled={isTyping}
-                  style={{
-                    fontFamily: dm, fontSize: '9.5px', fontWeight: 500,
-                    color: C.goldLight,
-                    background: 'rgba(184,148,74,0.08)',
-                    border: '0.5px solid rgba(184,148,74,0.22)',
-                    borderRadius: '999px', padding: '5px 10px',
-                    cursor: isTyping ? 'default' : 'pointer',
-                    whiteSpace: 'nowrap', flexShrink: 0,
-                    WebkitTapHighlightColor: 'transparent',
-                    opacity: isTyping ? 0.5 : 1,
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={e => {
-                    if (!isTyping) {
-                      e.currentTarget.style.background = 'rgba(184,148,74,0.18)';
-                      e.currentTarget.style.borderColor = 'rgba(184,148,74,0.45)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = 'rgba(184,148,74,0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(184,148,74,0.22)';
-                  }}
-                >
+                <button key={s} onClick={() => sendMessage(s)} disabled={isTyping} style={{
+                  fontFamily: dm, fontSize: '11px', fontWeight: 500,
+                  color: C.goldLight,
+                  background: 'rgba(184,148,74,0.08)',
+                  border: '0.5px solid rgba(184,148,74,0.22)',
+                  borderRadius: '999px', padding: '6px 12px',
+                  cursor: isTyping ? 'default' : 'pointer',
+                  whiteSpace: 'nowrap', flexShrink: 0,
+                  opacity: isTyping ? 0.5 : 1,
+                  WebkitTapHighlightColor: 'transparent',
+                }}>
                   {s}
                 </button>
               ))}
@@ -329,11 +286,11 @@ export default function AIPanel() {
           </div>
         )}
 
-        {/* ── Input bar ────────────────────────────────── */}
+        {/* ── Input ── */}
         <form onSubmit={handleSubmit} style={{
-          padding: '8px 10px 12px',
+          padding: '10px 16px 20px',
           borderTop: `0.5px solid ${C.faint}`,
-          display: 'flex', gap: '7px', alignItems: 'center',
+          display: 'flex', gap: '8px', alignItems: 'center',
           flexShrink: 0,
         }}>
           <input
@@ -348,22 +305,19 @@ export default function AIPanel() {
               flex: 1,
               background: 'rgba(250,247,242,0.06)',
               border: '0.5px solid rgba(250,247,242,0.12)',
-              borderRadius: '12px', padding: '9px 12px',
-              fontFamily: dm, fontSize: '11px', color: C.parchment,
+              borderRadius: '14px', padding: '11px 14px',
+              fontFamily: dm, fontSize: '13px', color: C.parchment,
               outline: 'none',
               opacity: isTyping ? 0.6 : 1,
-              transition: 'border-color 0.15s ease, opacity 0.15s ease',
             }}
             onFocus={e  => { if (!isTyping) e.target.style.borderColor = 'rgba(184,148,74,0.45)'; }}
             onBlur={e   => { e.target.style.borderColor = 'rgba(250,247,242,0.12)'; }}
           />
-
-          {/* Send button */}
           <button
             type="submit"
             disabled={!input.trim() || isTyping}
             style={{
-              width: '36px', height: '36px', borderRadius: '12px', flexShrink: 0,
+              width: '42px', height: '42px', borderRadius: '14px', flexShrink: 0,
               background: input.trim() && !isTyping
                 ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`
                 : 'rgba(250,247,242,0.08)',
@@ -373,10 +327,8 @@ export default function AIPanel() {
               transition: 'all 0.2s ease',
               WebkitTapHighlightColor: 'transparent',
             }}
-            onMouseDown={e => { if (input.trim() && !isTyping) e.currentTarget.style.transform = 'scale(0.9)'; }}
-            onMouseUp={e   => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke={input.trim() && !isTyping ? C.charcoal : 'rgba(250,247,242,0.3)'}
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13"/>

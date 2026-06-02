@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useXP } from '../contexts/XPContext';
+import { COURSES_META, getQuestionsForCourse } from '../data/quizData';
 
 /* ─── Tokens ──────────────────────────────────────────── */
 const C = {
@@ -21,41 +22,30 @@ const pf  = "'Playfair Display', serif";
 
 /* ─── XP CONFIG ──────────────────────────────────────── */
 const XP_CORRECT   = 25;
-const XP_STREAK_3  = 10; // bonus 3 üst üste
-const XP_STREAK_5  = 25; // bonus 5 üst üste
+const XP_STREAK_3  = 10;
+const XP_STREAK_5  = 25;
 const XP_FLASHCARD = 5;
 
-/* ─── DATA ────────────────────────────────────────────── */
-const COURSES = [
+/* ─── DATA — resmi 2025-2026 müfredatı ───────────────── */
+const COURSES = COURSES_META.map((c, i) => ({
+  id: i + 1,
+  year: c.year,
+  code: c.code,
+  name: c.name,
+  instructor: c.instructor,
+  examDate: c.examDate,
+  examTime: c.examTime,
+  completion: Math.floor(Math.random() * 60) + 20, // başlangıç ilerlemesi
+  color: c.color,
+  lessons: getQuestionsForCourse(c.code).length || 5,
+  done: 0,
+  hasQuiz: getQuestionsForCourse(c.code).length > 0,
+}));
+
+/* ─── ESKİ KURS VERİSİ KALDI (UNUSED — geriye dönük compat) ── */
+const _OLD_COURSES_PLACEHOLDER = [
   {
-    id: 1, year: 1, code: 'TAR101',
-    name: 'Anadolu Uygarlıkları Tarihi',
-    instructor: 'Dr. Elif Şahin',
-    examDate: '2025-06-05',
-    completion: 72,
-    color: '#4A8C6A',
-    lessons: 24, done: 17,
-  },
-  {
-    id: 2, year: 1, code: 'SAT102',
-    name: 'Osmanlı Sanat Tarihi',
-    instructor: 'Prof. Mehmet Öz',
-    examDate: '2025-06-12',
-    completion: 45,
-    color: '#6A4A8C',
-    lessons: 20, done: 9,
-  },
-  {
-    id: 3, year: 2, code: 'ARK201',
-    name: 'Arkeolojik Kazı Yöntemleri',
-    instructor: 'Ayşe Kara',
-    examDate: '2025-06-18',
-    completion: 88,
-    color: '#C45E8A',
-    lessons: 18, done: 16,
-  },
-  {
-    id: 4, year: 2, code: 'FEL202',
+    id: 99, year: 2, code: 'FEL202',
     name: 'Antik Türk Felsefesi',
     instructor: 'Dr. Hasan Yıldız',
     examDate: '2025-06-25',
@@ -63,63 +53,21 @@ const COURSES = [
     color: '#4A6A8C',
     lessons: 22, done: 7,
   },
-  {
-    id: 5, year: 3, code: 'MUZ301',
-    name: 'Geleneksel Türk Müziği',
-    instructor: 'Zeynep Arslan',
-    examDate: '2025-07-02',
-    completion: 55,
-    color: '#8B6F4A',
-    lessons: 16, done: 9,
-  },
-  {
-    id: 6, year: 4, code: 'KOR401',
-    name: 'Miras Koruma Hukuku',
-    instructor: 'Prof. Ali Demir',
-    examDate: '2025-07-10',
-    completion: 20,
-    color: '#7A6BAD',
-    lessons: 28, done: 6,
-  },
 ];
 
-const QUIZ_QUESTIONS = [
-  {
-    id: 1,
-    q: 'Göbekli Tepe\'nin inşa tarihi yaklaşık kaç yıl öncesine dayanmaktadır?',
-    options: ['5.000 yıl', '8.000 yıl', '12.000 yıl', '3.500 yıl'],
-    correct: 2,
-    explanation: 'Göbekli Tepe yaklaşık 12.000 yıl önce, MÖ 10.000 civarında inşa edilmiştir.',
-  },
-  {
-    id: 2,
-    q: 'Türkiye\'deki ilk UNESCO Dünya Mirası hangi yılda tescillenmiştir?',
-    options: ['1982', '1985', '1990', '1978'],
-    correct: 1,
-    explanation: 'Göreme Ulusal Parkı ve Kapadokya Kaya Sitleri 1985\'te tescillenmiştir.',
-  },
-  {
-    id: 3,
-    q: 'Efes antik kenti hangi medeniyete ait büyük bir ticaret merkeziydi?',
-    options: ['Hitit', 'Roma', 'Selçuklu', 'Bizans'],
-    correct: 1,
-    explanation: 'Efes, Roma İmparatorluğu döneminde Anadolu\'nun en önemli ticaret merkeziydi.',
-  },
-  {
-    id: 4,
-    q: 'Çatalhöyük hangi döneme ait bir yerleşim alanıdır?',
-    options: ['Kalkolitik', 'Tunç Çağı', 'Neolitik', 'Demir Çağı'],
-    correct: 2,
-    explanation: 'Çatalhöyük, MÖ 7500-5700 yılları arasına tarihlenen bir Neolitik yerleşim alanıdır.',
-  },
-  {
-    id: 5,
-    q: 'Hitit uygarlığının başkenti aşağıdakilerden hangisidir?',
-    options: ['Troya', 'Hattuşa', 'Sardis', 'Miletos'],
-    correct: 1,
-    explanation: 'Hattuşa (bugünkü Boğazköy), Hitit İmparatorluğu\'nun başkentiydi.',
-  },
-];
+/* ─── QUIZ veri adaptörü — quizData.js formatını QuizModule formatına çevirir ── */
+function adaptQuestions(courseCode) {
+  return getQuestionsForCourse(courseCode).map((q, i) => ({
+    id: i + 1,
+    q: q.soru,
+    options: q.sec,
+    correct: q.dogru,
+    explanation: q.aciklama,
+  }));
+}
+
+const QUIZ_QUESTIONS = adaptQuestions('KDB 122'); // default global quiz (Koruma İlkeleri)
+
 
 const FLASHCARDS = [
   {
