@@ -1,39 +1,15 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { LangProvider } from './contexts/LangContext';
-import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import QuranList from './pages/QuranList';
-import SurahDetail from './pages/SurahDetail';
-import HadithPage from './pages/HadithPage';
-import AiChat from './pages/AiChat';
-import ScholarsPage from './pages/ScholarsPage';
-import MealAudioPage from './pages/MealAudioPage';
-import QuizPage from './pages/QuizPage';
-import SettingsPage from './pages/SettingsPage';
+import MobileShell from './components/MobileShell';
 
+/**
+ * Kültür Koruma Akademisi — Uygulama kök bileşeni
+ *
+ * MobileShell; koyu mahogany degrade arka planı üzerinde
+ * 286×620'lik cihaz çerçevesini render eder ve tüm sekme
+ * geçiş durumunu yönetir.
+ * Eski pages/ ve contexts/ dosyaları ekranlar geliştirildiğinde
+ * tekrar bağlanmak üzere korunmuştur.
+ */
 export default function App() {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <LangProvider>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/quran" element={<QuranList />} />
-              <Route path="/quran/:surahNumber" element={<SurahDetail />} />
-              <Route path="/hadith" element={<HadithPage />} />
-              <Route path="/chat" element={<AiChat />} />
-              <Route path="/scholars" element={<ScholarsPage />} />
-              <Route path="/meal-audio" element={<MealAudioPage />} />
-              <Route path="/quiz" element={<QuizPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </LangProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  );
+  return <MobileShell />;
 }

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: kka-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn kka_server:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false          # set manually in Render dashboard — never commit the value
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+    healthCheckPath: /api/health
+    autoDeploy: true

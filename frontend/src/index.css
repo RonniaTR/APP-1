@@ -1,66 +1,66 @@
+/* ─── Google Fonts ─────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=Amiri:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── KKA Design Tokens ─────────────────────────────────── */
 :root {
-  --bg-primary: #0c1222;
-  --bg-surface: #111827;
-  --bg-surface-light: #1f2937;
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --accent-green: #10b981;
-  --accent-gold: #d4a373;
+  --parchment:      #FAF7F2;
+  --charcoal:       #1C1410;
+  --gold:           #B8944A;
+  --gold-light:     #D4AA6A;
+  --gold-muted:     rgba(184,148,74,0.12);
+  --scene-bg:       #1A0E08;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* ─── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Noto Sans', sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--scene-bg);
+  color: var(--charcoal);
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* scene is full-screen */
 }
 
+/* ─── Scrollbar Hide ────────────────────────────────────── */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Screen scroll area ───────────────────────────────── */
+.screen-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── Thin border utility ────────────────────────────────── */
+.border-hairline {
+  border-width: 0.5px;
+  border-style: solid;
+}
+
+/* ─── Animations ─────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 0.35s ease-out both; }
+
+@keyframes tabDot {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.animate-tab-dot { animation: tabDot 0.2s ease-out both; }
+
+/* ─── Arabic ─────────────────────────────────────────────── */
 .arabic-text {
   font-family: 'Amiri', serif;
   direction: rtl;
   text-align: right;
   line-height: 2.2;
 }
-
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
-
-.glass {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.06);
-}
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-input, textarea, select {
-  font-family: 'Noto Sans', sans-serif;
-}
-
-audio::-webkit-media-controls-panel { background: #1f2937; }

@@ -3021,6 +3021,98 @@ async def quiz_websocket(websocket: WebSocket, room_id: str, user_id: str):
         logger.error(f"WebSocket error: {e}")
         quiz_ws_manager.disconnect(room_id, user_id)
 
+# =====================================================================
+# KKA — AI HOCA ASISTAN  (Google Gemini)
+# =====================================================================
+import google.generativeai as genai
+
+# Key is loaded from .env above via load_dotenv()
+_GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
+if _GEMINI_KEY:
+    genai.configure(api_key=_GEMINI_KEY)
+else:
+    logger.warning("GEMINI_API_KEY not set — /api/ai-assistant will return 503")
+
+# ── System prompt ────────────────────────────────────────────────────
+KKA_SYSTEM_PROMPT = """Sen 'Kültür Koruma Akademisi' platformunun uzman AI hoca asistanısın.
+
+## Uzmanlık Alanların
+- Türkiye'deki UNESCO Dünya Mirası alanları (Göbekli Tepe, Efes, Çatalhöyük, Hattuşa, Nemrut Dağı, Troya, Kapadokya vb.)
+- Arkeolojik kazı yöntemleri ve stratigrafik analiz
+- Kültürel miras koruma teknikleri (konsolidasyon, restorasyon, dijital arşivleme)
+- Osmanlı, Selçuklu, Bizans, Hitit ve diğer Anadolu uygarlıkları
+- Müze yönetimi ve koleksiyon koruma
+- ICOMOS ve UNESCO koruma standartları
+- Malzeme bilimi: Paraloid akrilikler, kireç harçlar, konsolidasyon reçineleri
+- Türk sanat tarihi, el sanatları ve somut olmayan kültürel miras
+
+## Yanıt Kuralları
+1. DAIMA Türkçe yanıt ver — kullanıcı başka dil kullanmadıkça
+2. Kısa, net ve akademik bir dil kullan — ama öğrenciye uygun sıcaklıkta
+3. Mümkünse somut örnekler ver (alan adı, dönem, teknik)
+4. Bilimsel terimleri açıkla (parantez içinde)
+5. Yanıtın sonunda ilgili olduğunda kısa bir "💡 Daha fazla araştır:" önerisi ekle
+6. Uydurma bilgi verme; emin olmadığında "Bu konuyu kaynaklardan teyit etmenizi öneririm" de
+
+## Karakter
+- İsmin: Prof. Kültür
+- Sıcak, meraklı, öğretmeyi seven bir akademisyen
+- Emoji kullanımı: Az ama etkili (💡🏛️📜⚗️🔍)
+"""
+
+# ── Pydantic models ──────────────────────────────────────────────────
+class AIAssistantRequest(BaseModel):
+    message: str
+    session_id: Optional[str] = None  # ileride sohbet geçmişi için
+
+class AIAssistantResponse(BaseModel):
+    response: str
+    session_id: str
+
+# ── Endpoint ─────────────────────────────────────────────────────────
+@api_router.post("/ai-assistant", response_model=AIAssistantResponse)
+async def kka_ai_assistant(req: AIAssistantRequest):
+    """
+    KKA Gemini AI endpoint.
+    Kullanıcı mesajını alır, Gemini'ye gönderir, Türkçe yanıt döner.
+    """
+    if not _GEMINI_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini API anahtarı yapılandırılmamış. Lütfen .env dosyasını kontrol edin."
+        )
+
+    session_id = req.session_id or str(uuid.uuid4())
+
+    try:
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction=KKA_SYSTEM_PROMPT,
+        )
+        result = await asyncio.to_thread(
+            model.generate_content,
+            req.message,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                max_output_tokens=1024,
+            ),
+        )
+        answer = result.text.strip() if result.text else "Üzgünüm, bu soruya şu an yanıt üretemiyorum."
+        return AIAssistantResponse(response=answer, session_id=session_id)
+
+    except Exception as e:
+        logger.error(f"Gemini API error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI servis hatası: {str(e)}")
+
+# ── Health check for the AI endpoint ────────────────────────────────
+@api_router.get("/ai-assistant/health")
+async def kka_ai_health():
+    return {
+        "status": "ok" if _GEMINI_KEY else "no_key",
+        "model": "gemini-1.5-flash",
+        "endpoint": "/api/ai-assistant",
+    }
+
 # Include router
 app.include_router(api_router)
 
