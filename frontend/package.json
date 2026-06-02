@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "PORT=3000 BROWSER=none react-scripts start",
+    "start": "set PORT=3000 && set BROWSER=none && react-scripts start",
     "build": "react-scripts build",
     "expo": "node scripts/start.js"
   },
