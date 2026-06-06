@@ -89,6 +89,10 @@ class AIResponse(BaseModel):
     response: str
     session_id: str
 
+class CourseChatRequest(BaseModel):
+    course_code: str
+    message: str
+
 class ScoreSubmit(BaseModel):
     uid: str
     display_name: str
@@ -148,7 +152,7 @@ async def ai_assistant(req: AIRequest):
 
     try:
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="gemini-3.5-flash",
             system_instruction=SYSTEM_PROMPT,
         )
         result = model.generate_content(
@@ -164,6 +168,73 @@ async def ai_assistant(req: AIRequest):
     except Exception as exc:
         log.error("Gemini error: %s", exc)
         raise HTTPException(status_code=500, detail=f"AI servis hatası: {exc}")
+
+
+@app.post("/api/course-chat", response_model=AIResponse)
+async def course_chat(req: CourseChatRequest):
+    if not GEMINI_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini API anahtarı yapılandırılmamış."
+        )
+
+    import json
+    from pathlib import Path
+    DB_FILE = Path("course_files.json")
+
+    # 1) Ders dosyalarını kontrol et
+    if not DB_FILE.exists():
+        log.warning("course_files.json bulunamadı. Kullanıcı doğrudan modele sorulacak.")
+        file_info = None
+    else:
+        with open(DB_FILE, "r", encoding="utf-8") as f:
+            db = json.load(f)
+        # Örn: 'KDB 122' formunda eşleştirme
+        course_code = req.course_code.strip().upper()
+        # '_' veya boşluk desteklemek için:
+        alt_code = course_code.replace(" ", "_")
+        
+        file_info = db.get(course_code) or db.get(alt_code)
+
+    try:
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=GEMINI_KEY)
+        
+        system_instruction = f"Sen '{req.course_code}' dersinin uzman asistanısın. Sağlanan PDF belgesine dayanarak öğrencinin sorusunu yanıtla. Belgede yoksa genel uzmanlığını kullanarak ama belge dışı olduğunu belirterek kısa cevap ver."
+        
+        contents = []
+        # Eğer PDF yüklenmişse referans veriyoruz
+        if file_info:
+            try:
+                # Gemini File API'den dosyayı çek
+                gemini_file = client.files.get(name=file_info["file_name"])
+                contents.append(gemini_file)
+            except Exception as e:
+                log.error(f"Dosya referansı alınamadı: {e}")
+        
+        contents.append(req.message)
+
+        # Gemini 2.5 Flash
+        result = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.4,
+                max_output_tokens=1024,
+            )
+        )
+        answer = (result.text or "").strip() or "Bu bilgiye ulaşılamadı."
+        
+        if not file_info:
+            answer = "⚠️ (Dersin arşivi sisteme henüz yüklenmemiş. Genel bilgilere dayanarak cevap veriyorum.)\n\n" + answer
+
+        return AIResponse(response=answer, session_id="course_chat")
+
+    except Exception as exc:
+        log.error("Course chat error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Ders asistanı hatası: {exc}")
 
 
 @app.get("/api/leaderboard")
