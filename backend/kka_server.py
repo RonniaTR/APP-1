@@ -22,7 +22,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,11 +37,17 @@ log = logging.getLogger("kka")
 
 # ── Gemini setup ─────────────────────────────────────────────────────
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
-if GEMINI_KEY:
-    genai.configure(api_key=GEMINI_KEY)
-    log.info("Gemini API configured ✓")
-else:
-    log.warning("GEMINI_API_KEY not set — /api/ai-assistant will return 503")
+
+try:
+    if GEMINI_KEY:
+        client = genai.Client(api_key=GEMINI_KEY)
+        log.info("Gemini API configured ✓")
+    else:
+        client = None
+        log.warning("GEMINI_API_KEY not found in env.")
+except Exception as e:
+    log.error(f"Failed to configure Gemini: {e}")
+    client = None
 
 # ── System prompt ─────────────────────────────────────────────────────
 SYSTEM_PROMPT = """Sen 'Kültür Koruma Akademisi' platformunun uzman AI hoca asistanısın.
@@ -135,14 +142,14 @@ def _ranked_leaderboard() -> list[LeaderboardEntry]:
 async def health():
     return {
         "status": "ok",
-        "gemini": "configured" if GEMINI_KEY else "missing_key",
+        "gemini": "configured" if client else "missing_key",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
 @app.post("/api/ai-assistant", response_model=AIResponse)
 async def ai_assistant(req: AIRequest):
-    if not GEMINI_KEY:
+    if not client:
         raise HTTPException(
             status_code=503,
             detail="Gemini API anahtarı yapılandırılmamış. Render ortam değişkenlerini kontrol edin.",
@@ -151,18 +158,16 @@ async def ai_assistant(req: AIRequest):
     session_id = req.session_id or f"kka_{datetime.now(timezone.utc).timestamp()}"
 
     try:
-        model = genai.GenerativeModel(
-            model_name="gemini-3.5-flash",
-            system_instruction=SYSTEM_PROMPT,
-        )
-        result = model.generate_content(
-            req.message,
-            generation_config=genai.types.GenerationConfig(
+        result = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=req.message,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
                 temperature=0.7,
                 max_output_tokens=1024,
-            ),
+            )
         )
-        answer = (result.text or "").strip() or "Üzgünüm, bu soruya şu an yanıt üretemiyorum."
+        answer = (result.text or "").strip() or "Bu bilgiye ulaşılamadı."
         return AIResponse(response=answer, session_id=session_id)
 
     except Exception as exc:
@@ -197,10 +202,6 @@ async def course_chat(req: CourseChatRequest):
         file_info = db.get(course_code) or db.get(alt_code)
 
     try:
-        from google import genai
-        from google.genai import types
-        client = genai.Client(api_key=GEMINI_KEY)
-        
         system_instruction = f"Sen '{req.course_code}' dersinin uzman asistanısın. Sağlanan PDF belgesine dayanarak öğrencinin sorusunu yanıtla. Belgede yoksa genel uzmanlığını kullanarak ama belge dışı olduğunu belirterek kısa cevap ver."
         
         contents = []
