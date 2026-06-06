@@ -370,10 +370,7 @@ export default function MobileShell() {
     return unsub;
   }, []);
 
-  // Tema: sistem tercihinden başla
-  const [tema, setTema] = useState(() =>
-    window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  );
+  // Tema state moved to the top of component
   const [dil, setDil] = useState('tr');
   const t = useCallback(makeTFunc(dil), [dil]);
 
