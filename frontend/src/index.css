@@ -5,7 +5,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── KKA Design Tokens ─────────────────────────────────── */
+/* ─── KKA Design Tokens — Light (Parşömen) ──────────────── */
 :root {
   --parchment:      #FAF7F2;
   --charcoal:       #1C1410;
@@ -13,6 +13,70 @@
   --gold-light:     #D4AA6A;
   --gold-muted:     rgba(184,148,74,0.12);
   --scene-bg:       #1A0E08;
+
+  /* Tema sistemi — Light */
+  --bg-0:           #F6EFE2;
+  --bg-1:           #FDF6EC;
+  --bg-2:           #F0E8D5;
+  --bg-deep:        #231408;
+  --bg-koyu:        #3A1F0C;
+  --card-bg:        #FFFFFF;
+  --card-bg-elevated: #FAF7F2;
+
+  --txt-1:          #3D2B1F;
+  --txt-2:          #5A4535;
+  --txt-3:          #9A8A7A;
+  --txt-4:          #7A6A5A;
+
+  --border:         rgba(212,184,150,0.2);
+  --border-m:       rgba(212,184,150,0.4);
+
+  --altin:          #C8A45A;
+  --altin-dim:      #9E7230;
+
+  --shadow:         rgba(0,0,0,0.08);
+  --shadow-m:       rgba(0,0,0,0.18);
+  --overlay:        rgba(0,0,0,0.55);
+
+  --nav-bg:         rgba(250,247,242,0.92);
+  --nav-border:     rgba(28,20,16,0.10);
+  --nav-icon:       rgba(28,20,16,0.35);
+  --nav-icon-active:#1C1410;
+}
+
+/* ─── Dark Tema ──────────────────────────────────────────── */
+[data-tema="dark"] {
+  --parchment:      #1A1108;
+  --charcoal:       #F0E4C8;
+  --scene-bg:       #060402;
+
+  --bg-0:           #120E0A;
+  --bg-1:           #1A1510;
+  --bg-2:           #261E16;
+  --bg-deep:        #0A0806;
+  --bg-koyu:        #18120D;
+  --card-bg:        #1A1510;
+  --card-bg-elevated: #261E16;
+
+  --txt-1:          #F0E4C8;
+  --txt-2:          #D4B895;
+  --txt-3:          #9A8A6A;
+  --txt-4:          #6A5A4A;
+
+  --border:         rgba(200,164,90,0.12);
+  --border-m:       rgba(200,164,90,0.25);
+
+  --altin:          #D4A840;
+  --altin-dim:      #A87C28;
+
+  --shadow:         rgba(0,0,0,0.45);
+  --shadow-m:       rgba(0,0,0,0.75);
+  --overlay:        rgba(0,0,0,0.85);
+
+  --nav-bg:         rgba(18,14,10,0.95);
+  --nav-border:     rgba(200,164,90,0.12);
+  --nav-icon:       rgba(240,228,200,0.3);
+  --nav-icon-active:#D4A840;
 }
 
 /* ─── Reset ─────────────────────────────────────────────── */

@@ -3,8 +3,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /* ─── Tokens ──────────────────────────────────────────── */
 const C = {
-  parchment:  '#FAF7F2',
-  charcoal:   '#1C1410',
+  parchment:  'var(--bg-1)',
+  charcoal:   'var(--txt-1)',
   gold:       '#B8944A',
   goldLight:  '#D4AA6A',
   muted:      'rgba(250,247,242,0.45)',
@@ -39,7 +39,7 @@ function getModel() {
     if (!key) return null;
     const genAI = new GoogleGenerativeAI(key);
     _model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.5-flash',
       systemInstruction: SYSTEM_PROMPT,
     });
   }

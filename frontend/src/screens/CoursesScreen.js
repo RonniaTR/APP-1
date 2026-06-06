@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useXP } from '../contexts/XPContext';
 import { COURSES_META, getQuestionsForCourse } from '../data/quizData';
+import { SINIFLAR } from '../data/v10Data';
 
 /* ─── Tokens ──────────────────────────────────────────── */
 const C = {
-  parchment: '#FAF7F2',
-  charcoal:  '#1C1410',
+  parchment: 'var(--bg-1)',
+  charcoal:  'var(--txt-1)',
   gold:      '#B8944A',
   goldLight: '#D4AA6A',
   muted:     'rgba(28,20,16,0.45)',
@@ -15,7 +16,7 @@ const C = {
   green:     '#34C759',
   red:       '#FF3B30',
   sandstone: '#D4C4A8',
-  cream:     '#FEFCF7',
+  cream:     'var(--card-bg)',
 };
 const dm  = "'DM Sans', sans-serif";
 const pf  = "'Playfair Display', serif";
@@ -26,21 +27,36 @@ const XP_STREAK_3  = 10;
 const XP_STREAK_5  = 25;
 const XP_FLASHCARD = 5;
 
+/* ─── SINIFLAR haritası (kod → ders detayı) ───────────── */
+const DERS_DETAY_MAP = {};
+SINIFLAR.forEach(sinif => {
+  sinif.dersler.forEach(ders => {
+    DERS_DETAY_MAP[ders.kod] = ders;
+  });
+});
+
 /* ─── DATA — resmi 2025-2026 müfredatı ───────────────── */
-const COURSES = COURSES_META.map((c, i) => ({
-  id: i + 1,
-  year: c.year,
-  code: c.code,
-  name: c.name,
-  instructor: c.instructor,
-  examDate: c.examDate,
-  examTime: c.examTime,
-  completion: Math.floor(Math.random() * 60) + 20, // başlangıç ilerlemesi
-  color: c.color,
-  lessons: getQuestionsForCourse(c.code).length || 5,
-  done: 0,
-  hasQuiz: getQuestionsForCourse(c.code).length > 0,
-}));
+const COURSES = COURSES_META.map((c, i) => {
+  const detay = DERS_DETAY_MAP[c.code] || {};
+  return {
+    id: i + 1,
+    year: c.year,
+    code: c.code,
+    name: c.name,
+    instructor: c.instructor,
+    examDate: c.examDate,
+    examTime: c.examTime,
+    completion: 0,
+    color: c.color,
+    lessons: getQuestionsForCourse(c.code).length || 5,
+    done: 0,
+    hasQuiz: getQuestionsForCourse(c.code).length > 0,
+    // v11 — İçerik Merkezi için:
+    kavramlar: detay.kavramlar || [],
+    flashcards: detay.flashcards || [],
+    description: detay.aciklama || '',
+  };
+});
 
 /* ─── ESKİ KURS VERİSİ KALDI (UNUSED — geriye dönük compat) ── */
 const _OLD_COURSES_PLACEHOLDER = [
@@ -232,10 +248,10 @@ function YearFilter({ active, onChange }) {
 }
 
 /* ─── COURSE CARD ─────────────────────────────────────── */
-function CourseCard({ course }) {
-  const days = daysUntil(course.examDate);
-  const urgencyColor = days <= 3 ? C.terracotta : days <= 7 ? '#D4862A' : C.muted;
-  const examLabel = new Date(course.examDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+function CourseCard({ course, onIcerikAc, studyTopics }) {
+  const courseXP = studyTopics?.[course.code] || 0;
+  // Varsayılan olarak bir derste kazanılan her 200 XP %100 ilerleme saysın (örneğin)
+  const realCompletion = Math.min(100, Math.floor((courseXP / 200) * 100));
 
   return (
     <div style={{
@@ -260,8 +276,8 @@ function CourseCard({ course }) {
               }}>
                 {course.code}
               </span>
-              <span style={{ fontFamily: dm, fontSize: '9px', color: urgencyColor, fontWeight: 600 }}>
-                {days <= 0 ? 'Bugün!' : `${days}g`} · {examLabel}
+              <span style={{ fontFamily: dm, fontSize: '9px', color: C.muted, fontWeight: 600 }}>
+                {courseXP > 0 ? `${courseXP} XP Kazanıldı` : 'Henüz başlanmadı'}
               </span>
             </div>
             <p style={{
@@ -271,9 +287,6 @@ function CourseCard({ course }) {
             }}>
               {course.name}
             </p>
-            <p style={{ fontFamily: dm, fontSize: '9.5px', color: C.muted, marginTop: '2px' }}>
-              {course.instructor}
-            </p>
           </div>
           {/* Completion ring */}
           <div style={{ position: 'relative', width: '38px', height: '38px', flexShrink: 0 }}>
@@ -281,7 +294,7 @@ function CourseCard({ course }) {
               <circle cx="19" cy="19" r="15" fill="none" stroke={C.faint} strokeWidth="3"/>
               <circle cx="19" cy="19" r="15" fill="none" stroke={course.color} strokeWidth="3"
                 strokeDasharray={`${2*Math.PI*15}`}
-                strokeDashoffset={`${2*Math.PI*15*(1-course.completion/100)}`}
+                strokeDashoffset={`${2*Math.PI*15*(1-realCompletion/100)}`}
                 strokeLinecap="round" transform="rotate(-90 19 19)"
                 style={{ transition: 'stroke-dashoffset 1s ease' }}/>
             </svg>
@@ -290,7 +303,7 @@ function CourseCard({ course }) {
               transform: 'translate(-50%,-50%)',
               fontFamily: dm, fontSize: '8px', fontWeight: 700, color: course.color,
             }}>
-              {course.completion}%
+              {realCompletion}%
             </span>
           </div>
         </div>
@@ -299,7 +312,7 @@ function CourseCard({ course }) {
         <div style={{ height: '4px', borderRadius: '999px', background: C.faint, overflow: 'hidden', marginTop: '4px' }}>
           <div style={{
             height: '100%', borderRadius: '999px',
-            width: `${course.completion}%`,
+            width: `${realCompletion}%`,
             background: `linear-gradient(90deg, ${course.color}99, ${course.color})`,
             transition: 'width 1s ease',
           }} />
@@ -310,13 +323,308 @@ function CourseCard({ course }) {
           <span style={{ fontFamily: dm, fontSize: '9.5px', color: C.muted }}>
             {course.done}/{course.lessons} ders tamamlandı
           </span>
-          <button style={{
+          <button onClick={() => onIcerikAc && onIcerikAc(course)} style={{
             fontFamily: dm, fontSize: '10px', fontWeight: 600,
             color: course.color, background: 'none', border: 'none', cursor: 'pointer',
             WebkitTapHighlightColor: 'transparent',
           }}>
-            Devam Et →
+            İçerik Merkezi →
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── DERS İÇERİK MODALİ ────────────────────── */
+function DersKonuOzeti({ ders, sinifRenk }) {
+  const [aiOzet, setAiOzet] = useState(null);
+  const [yukleniyor, setYukleniyor] = useState(false);
+
+  const aiOzetUret = async () => {
+    setYukleniyor(true);
+    try {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+      if (!apiKey) throw new Error('API key eksik');
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+      const prompt = `Bu dersin sınav odaklı konu özetini çıkar. Ders adı: ${ders.name}. Ders kodu: ${ders.code}. Açıklama: ${ders.description || ''}. Madde madde, kısa, Türkçe. En önemli 5-7 nokta.`;
+      const result = await model.generateContent(prompt);
+      setAiOzet(result.response.text());
+    } catch (err) {
+      setAiOzet('⚠️ AI özeti yüklenemedi. Lütfen tekrar deneyin.');
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  const kavramlar = ders.kavramlar || [];
+
+  return (
+    <div>
+      {/* Kavramlar chips */}
+      {kavramlar.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+          {kavramlar.map((k, i) => (
+            <span key={i} style={{ fontFamily: dm, fontSize: 10, background: sinifRenk + '18', border: `1px solid ${sinifRenk}33`, borderRadius: 20, padding: '4px 10px', color: sinifRenk, fontWeight: 600 }}>{k}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Ders açıklaması */}
+      <p style={{ fontFamily: dm, fontSize: 12, color: '#5A4535', lineHeight: 1.65, marginBottom: 14 }}>
+        {ders.description || 'Bu ders için açıklama bulunmuyor.'}
+      </p>
+
+      {/* Flashcard özet */}
+      {(ders.flashcards || []).length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#9A8A7A', marginBottom: 8, fontFamily: dm, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Temel Kavramlar</div>
+          {ders.flashcards.slice(0, 3).map((fc, i) => (
+            <div key={i} style={{ background: '#FDF6EC', border: '1px solid #D4B89633', borderRadius: 10, padding: '10px 12px', marginBottom: 6 }}>
+              <div style={{ fontFamily: 'Georgia,serif', fontSize: 12, fontWeight: 700, color: '#3D2B1F', marginBottom: 4 }}>{fc.on}</div>
+              <div style={{ fontFamily: dm, fontSize: 11, color: '#7A6A5A', lineHeight: 1.5 }}>{fc.arka}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* AI Ozet */}
+      {!aiOzet ? (
+        <button onClick={aiOzetUret} disabled={yukleniyor}
+          style={{ width: '100%', padding: '12px', background: `linear-gradient(135deg, ${sinifRenk}22, ${sinifRenk}11)`, border: `1px solid ${sinifRenk}44`, borderRadius: 12, fontFamily: 'Georgia,serif', fontSize: 12, color: sinifRenk, fontWeight: 700, cursor: 'pointer' }}>
+          {yukleniyor ? '⏳ Özet üretiliyor...' : '🤖 AI ile Derin Özet Üret'}
+        </button>
+      ) : (
+        <div style={{ background: sinifRenk + '0D', border: `1px solid ${sinifRenk}33`, borderRadius: 12, padding: '14px' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: sinifRenk, marginBottom: 8, fontFamily: dm }}>AI Konu Özeti</div>
+          <pre style={{ fontFamily: dm, fontSize: 11, color: '#3D2B1F', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{aiOzet}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── DERS NOTEBOOKLM (AI Chat) ────────────────────── */
+function DersNotebookChat({ ders, sinifRenk }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setLoading(true);
+
+    try {
+      // Backend'deki NotebookLM endpoint'ine istek at
+      // Şimdilik test amaçlı yerel 8001 portu, deploy edilince Vercel/Render URL'si olacak
+      const apiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+        ? 'http://localhost:8001/api/course-chat' 
+        : 'https://kka-backend.onrender.com/api/course-chat';
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_code: ders.code, message: userMsg })
+      });
+      const data = await res.json();
+      
+      setMessages(prev => [...prev, { role: 'ai', content: data.response }]);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: 'ai', content: 'Sisteme ulaşılamadı. Lütfen sunucunun (Backend) çalıştığından emin olun.' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '400px' }}>
+      <div style={{ background: sinifRenk + '11', padding: '10px 14px', borderRadius: 12, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ fontSize: 24 }}>📚</div>
+        <div>
+          <div style={{ fontFamily: pf, fontSize: 13, fontWeight: 700, color: '#3D2B1F' }}>Akademi Notebook (AI)</div>
+          <div style={{ fontFamily: dm, fontSize: 10, color: '#9A8A7A' }}>Bu dersin PDF arşivinden saniyeler içinde cevap alın.</div>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, padding: '5px 0' }} className="scrollbar-hide">
+        {messages.length === 0 ? (
+          <div style={{ textAlign: 'center', marginTop: 40 }}>
+            <div style={{ fontSize: 32, opacity: 0.5 }}>🔎</div>
+            <p style={{ fontFamily: dm, fontSize: 12, color: '#9A8A7A', marginTop: 10 }}>Ders arşivi yüklendi.<br/>Ne öğrenmek istersiniz?</p>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 20, flexWrap: 'wrap', padding: '0 10px' }}>
+              <button onClick={() => setInput("Bana bu PDF'in detaylı bir özetini çıkarır mısın?")} style={{ padding: '6px 12px', borderRadius: 12, border: `1px solid ${sinifRenk}55`, background: 'transparent', color: sinifRenk, fontFamily: dm, fontSize: 11, cursor: 'pointer' }}>📝 Özet Çıkar</button>
+              <button onClick={() => setInput("Sınavda çıkabilecek en önemli 5 kavram nedir?")} style={{ padding: '6px 12px', borderRadius: 12, border: `1px solid ${sinifRenk}55`, background: 'transparent', color: sinifRenk, fontFamily: dm, fontSize: 11, cursor: 'pointer' }}>⭐ Önemli Kavramlar</button>
+            </div>
+          </div>
+        ) : (
+          messages.map((m, i) => (
+            <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', background: m.role === 'user' ? sinifRenk : 'var(--bg-2)', color: m.role === 'user' ? '#FFF' : 'var(--txt-1)', padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 0 14px' : '14px 14px 14px 0', fontFamily: dm, fontSize: 12, lineHeight: 1.5 }}>
+              {m.content}
+            </div>
+          ))
+        )}
+        {loading && (
+          <div style={{ alignSelf: 'flex-start', background: 'var(--bg-2)', padding: '10px 14px', borderRadius: '14px 14px 14px 0', fontSize: 12, color: 'var(--txt-3)' }}>
+            Arşiv taranıyor...
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+        <input 
+          type="text" 
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          placeholder="Derse dair bir şey sorun..."
+          style={{ flex: 1, padding: '12px 14px', borderRadius: 20, border: '1px solid var(--border)', background: 'var(--card-bg)', outline: 'none', fontFamily: dm, fontSize: 12, color: 'var(--txt-1)' }}
+        />
+        <button onClick={sendMessage} disabled={loading || !input.trim()} style={{ background: sinifRenk, border: 'none', width: 42, height: 42, borderRadius: '50%', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: (loading || !input.trim()) ? 0.5 : 1 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DersPodcast({ ders, sinifRenk }) {
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+  const bolumler = [
+    { baslik: `${ders.code} — Bölüm 1: Temel Kavramlara Giriş`, sure: '18 dk', ep: 'E01' },
+    { baslik: `${ders.code} — Bölüm 2: Yöntem ve Uygulamalar`, sure: '22 dk', ep: 'E02' },
+    { baslik: `${ders.code} — Bölüm 3: Sınav Hazırlık`, sure: '15 dk', ep: 'E03' },
+  ];
+  return (
+    <div>
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: 'var(--txt-1)', color: 'var(--bg-0)', borderRadius: 20, padding: '8px 16px', fontSize: 12, fontFamily: dm, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>
+      )}
+      {bolumler.map((b, i) => (
+        <div key={i} style={{ display: 'flex', gap: 10, background: `linear-gradient(135deg, ${sinifRenk}12, ${sinifRenk}06)`, border: `1px solid ${sinifRenk}22`, borderRadius: 12, padding: '12px', marginBottom: 10, alignItems: 'center' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 10, background: `linear-gradient(135deg, ${sinifRenk}, ${sinifRenk}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 9, fontWeight: 800, color: '#FFF', fontFamily: dm }}>{b.ep}</span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: 'Georgia,serif', fontSize: 11, fontWeight: 700, color: '#3D2B1F', lineHeight: 1.35 }}>{b.baslik}</div>
+            <div style={{ fontSize: 9, color: '#9A8A7A', marginTop: 3, fontFamily: dm }}>⏱ {b.sure}</div>
+          </div>
+          <button onClick={() => showToast('🎧 Podcast yakında eklenecek')} style={{ width: 34, height: 34, borderRadius: '50%', background: sinifRenk, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ color: '#FFF', fontSize: 12 }}>▶</span>
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DersVideo({ ders, sinifRenk }) {
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+  const videolar = [
+    { baslik: 'Terminoloji Hizlı Genel Bakış', sure: '8:22', emoji: '📚' },
+    { baslik: 'Lab Uygulaması Demo', sure: '12:45', emoji: '🔬' },
+    { baslik: 'Gerçek Alan: Saha Gezi', sure: '18:03', emoji: '🏕️' },
+    { baslik: 'Sınav Öncesi Tekrar', sure: '6:50', emoji: '📝' },
+  ];
+  return (
+    <div>
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: 'var(--txt-1)', color: 'var(--bg-0)', borderRadius: 20, padding: '8px 16px', fontSize: 12, fontFamily: dm, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {videolar.map((v, i) => (
+          <div key={i} onClick={() => showToast('🎥 İçerik yakında')} style={{ cursor: 'pointer', borderRadius: 12, overflow: 'hidden', border: `1px solid ${sinifRenk}22` }}>
+            <div style={{ height: 72, background: `linear-gradient(135deg, ${sinifRenk}, ${sinifRenk}66)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <span style={{ fontSize: 28 }}>{v.emoji}</span>
+              <div style={{ position: 'absolute', bottom: 5, right: 6, background: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: '1px 5px', fontSize: 9, color: '#FFF', fontFamily: dm, fontWeight: 600 }}>{v.sure}</div>
+            </div>
+            <div style={{ padding: '8px 9px', background: 'var(--card-bg)' }}>
+              <div style={{ fontFamily: dm, fontSize: 10, fontWeight: 600, color: 'var(--txt-1)', lineHeight: 1.35 }}>{v.baslik}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DersPdf({ ders, sinifRenk }) {
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+  const dosyalar = [
+    { ad: `${ders.code} Hafta 1-4 Ders Notları.pdf`, boyut: '2.4 MB' },
+    { ad: `${ders.code} Terminoloji Sözlüğü.pdf`, boyut: '1.1 MB' },
+    { ad: `${ders.code} Sınav Çalışma Kılavuzu.pdf`, boyut: '890 KB' },
+  ];
+  return (
+    <div>
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: 'var(--txt-1)', color: 'var(--bg-0)', borderRadius: 20, padding: '8px 16px', fontSize: 12, fontFamily: dm, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>
+      )}
+      {dosyalar.map((f, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 8 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: sinifRenk + '18', border: `1px solid ${sinifRenk}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>📄</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: dm, fontSize: 11, fontWeight: 600, color: 'var(--txt-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.ad}</div>
+            <div style={{ fontSize: 9, color: 'var(--txt-3)', marginTop: 4, fontFamily: dm }}>{f.boyut}</div>
+          </div>
+          <button onClick={() => showToast('📅 PDF bu cihazda mevcut değil')} style={{ width: 30, height: 30, borderRadius: 8, background: sinifRenk + '18', border: `1px solid ${sinifRenk}33`, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📥</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DersIcerikModal({ ders, sinifRenk, onKapat, onQuizAc }) {
+  const [sekme, setSekme] = useState('ozet');
+  const ICERIK_SEKME = [
+    { id: 'ozet',    emoji: '📝', label: 'Özet'        },
+    { id: 'notebook',emoji: '🤖', label: 'Notebook'    },
+    { id: 'podcast', emoji: '📻', label: 'Podcast'     },
+    { id: 'video',   emoji: '🎦', label: 'Video'       },
+    { id: 'pdf',     emoji: '📄', label: 'PDF'         },
+  ];
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(28,20,16,0.75)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 420, maxHeight: '88vh', background: 'var(--bg-1)', borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column', animation: 'slideUp 0.25s ease' }}>
+        <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+        {/* Modal Header */}
+        <div style={{ padding: '14px 16px 10px', flexShrink: 0, borderBottom: '1px solid rgba(28,20,16,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={onKapat} style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(28,20,16,0.06)', border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 9, color: sinifRenk, fontWeight: 700, fontFamily: dm, letterSpacing: '0.06em' }}>{ders.code}</span>
+              <h3 style={{ margin: 0, fontFamily: 'Georgia,serif', fontSize: 13, fontWeight: 700, color: '#3D2B1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ders.name}</h3>
+            </div>
+            <div style={{ display: 'flex', gap: 5 }}>
+              <button onClick={() => { onKapat(); onQuizAc && onQuizAc(ders); }}
+                style={{ fontSize: 10, background: sinifRenk + '22', color: sinifRenk, border: `1px solid ${sinifRenk}44`, borderRadius: 6, padding: '5px 9px', cursor: 'pointer', fontWeight: 700, fontFamily: dm }}>Quiz →</button>
+            </div>
+          </div>
+        </div>
+        {/* Sekme Bar */}
+        <div style={{ display: 'flex', background: 'var(--bg-2)', borderRadius: 10, padding: 3, gap: 2, margin: '10px 16px 0', flexShrink: 0 }}>
+          {ICERIK_SEKME.map(s => (
+            <button key={s.id} onClick={() => setSekme(s.id)}
+              style={{ flex: 1, padding: '7px 2px', borderRadius: 8, border: 'none', cursor: 'pointer', background: sekme === s.id ? 'var(--card-bg)' : 'transparent', boxShadow: sekme === s.id ? '0 1px 4px var(--shadow)' : 'none', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <span style={{ fontSize: 14 }}>{s.emoji}</span>
+              <span style={{ fontSize: 9, fontWeight: sekme === s.id ? 700 : 400, color: sekme === s.id ? 'var(--txt-1)' : 'var(--txt-3)', fontFamily: 'Georgia,serif' }}>{s.label}</span>
+            </button>
+          ))}
+        </div>
+        {/* İçerik Alanı */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 20px' }} className="scrollbar-hide">
+          {sekme === 'ozet'     && <DersKonuOzeti ders={ders} sinifRenk={sinifRenk}/>}
+          {sekme === 'notebook' && <DersNotebookChat ders={ders} sinifRenk={sinifRenk}/>}
+          {sekme === 'podcast'  && <DersPodcast   ders={ders} sinifRenk={sinifRenk}/>}
+          {sekme === 'video'    && <DersVideo     ders={ders} sinifRenk={sinifRenk}/>}
+          {sekme === 'pdf'      && <DersPdf       ders={ders} sinifRenk={sinifRenk}/>}
         </div>
       </div>
     </div>
@@ -927,12 +1235,16 @@ function GamificationSection() {
 
 /* ─── MAIN SCREEN ─────────────────────────────────────── */
 export default function CoursesScreen() {
-  const { xp, level, levelPct } = useXP();
+  const { xp, level, levelPct, studyTopics } = useXP();
   const [yearFilter, setYearFilter] = useState(0);
+  const [icerikModal, setIcerikModal] = useState(null); // null | { course, sinifRenk }
 
   const filtered = yearFilter === 0
     ? COURSES
     : COURSES.filter(c => c.year === yearFilter);
+
+  // Sınıf rengini bul
+  const sinifRengiAl = (course) => course.color || '#C8A45A';
 
   return (
     <>
@@ -942,6 +1254,16 @@ export default function CoursesScreen() {
           100% { background-position:  200% 0; }
         }
       `}</style>
+
+      {/* Ders İçerik Modalı */}
+      {icerikModal && (
+        <DersIcerikModal
+          ders={icerikModal.course}
+          sinifRenk={icerikModal.sinifRenk}
+          onKapat={() => setIcerikModal(null)}
+          onQuizAc={() => setIcerikModal(null)}
+        />
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header */}
@@ -970,16 +1292,20 @@ export default function CoursesScreen() {
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
           className="scrollbar-hide">
 
-          {/* Urgency / XP card */}
-          <UrgencyCard xp={xp} level={level} levelPct={levelPct} />
-
           {/* Year filter */}
-          <YearFilter active={yearFilter} onChange={setYearFilter} />
+          <div style={{marginTop: 10}}>
+            <YearFilter active={yearFilter} onChange={setYearFilter} />
+          </div>
 
           {/* Course list */}
           <div style={{ paddingBottom: '4px' }}>
             {filtered.map(course => (
-              <CourseCard key={course.id} course={course} />
+              <CourseCard
+                key={course.id}
+                course={course}
+                studyTopics={studyTopics}
+                onIcerikAc={(c) => setIcerikModal({ course: c, sinifRenk: sinifRengiAl(c) })}
+              />
             ))}
           </div>
 
