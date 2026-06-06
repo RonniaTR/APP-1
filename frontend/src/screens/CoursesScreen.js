@@ -411,6 +411,28 @@ function DersNotebookChat({ ders, sinifRenk }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
+
+  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:8001'
+    : 'https://kka-backend.onrender.com';
+
+  // Wake up the backend when the tab opens (Render free tier spins down after inactivity)
+  useEffect(() => {
+    let cancelled = false;
+    const wakeUp = async () => {
+      for (let i = 0; i < 3; i++) {
+        try {
+          const res = await fetch(`${API_BASE}/api/health`, { method: 'GET' });
+          if (res.ok && !cancelled) { setBackendReady(true); return; }
+        } catch (e) { /* retry */ }
+        if (!cancelled) await new Promise(r => setTimeout(r, 3000));
+      }
+      if (!cancelled) setBackendReady(true); // proceed anyway after retries
+    };
+    wakeUp();
+    return () => { cancelled = true; };
+  }, [API_BASE]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -419,26 +441,32 @@ function DersNotebookChat({ ders, sinifRenk }) {
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setLoading(true);
 
-    try {
-      // Backend'deki NotebookLM endpoint'ine istek at
-      // Şimdilik test amaçlı yerel 8001 portu, deploy edilince Vercel/Render URL'si olacak
-      const apiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
-        ? 'http://localhost:8001/api/course-chat' 
-        : 'https://kka-backend.onrender.com/api/course-chat';
-
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ course_code: ders.code, message: userMsg })
-      });
-      const data = await res.json();
-      
-      setMessages(prev => [...prev, { role: 'ai', content: data.response }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', content: 'Sisteme ulaşılamadı. Lütfen sunucunun (Backend) çalıştığından emin olun.' }]);
-    } finally {
-      setLoading(false);
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const res = await fetch(`${API_BASE}/api/course-chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ course_code: ders.code, message: userMsg })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Sunucu hatası (${res.status})`);
+        }
+        const data = await res.json();
+        setMessages(prev => [...prev, { role: 'ai', content: data.response }]);
+        setLoading(false);
+        return; // success — exit
+      } catch (error) {
+        if (attempt < maxRetries - 1) {
+          // Wait before retry (exponential backoff)
+          await new Promise(r => setTimeout(r, (attempt + 1) * 2000));
+          continue;
+        }
+        setMessages(prev => [...prev, { role: 'ai', content: `⚠️ Sunucuya bağlanılamadı. Render ücretsiz plan kullanıldığı için sunucu uykuda olabilir. Lütfen 30 saniye bekleyip tekrar deneyin.\n\nHata: ${error.message}` }]);
+      }
     }
+    setLoading(false);
   };
 
   return (
