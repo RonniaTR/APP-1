@@ -84,6 +84,7 @@ app.add_middleware(
     allow_origins=[
         "https://kultur-koruma-akademisi.web.app",
         "https://kultur-koruma-akademisi.firebaseapp.com",
+        "https://app-1-1-vqje.onrender.com",
         "http://localhost:3000",
         "http://localhost:8001",
         "http://127.0.0.1:3000",

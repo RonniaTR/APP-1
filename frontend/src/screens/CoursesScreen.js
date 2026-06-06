@@ -415,7 +415,7 @@ function DersNotebookChat({ ders, sinifRenk }) {
 
   const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:8001'
-    : 'https://kka-backend.onrender.com';
+    : 'https://app-1-1-vqje.onrender.com';
 
   // Wake up the backend when the tab opens (Render free tier spins down after inactivity)
   useEffect(() => {
