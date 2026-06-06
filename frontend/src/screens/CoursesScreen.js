@@ -9,9 +9,9 @@ const C = {
   charcoal:  'var(--txt-1)',
   gold:      '#B8944A',
   goldLight: '#D4AA6A',
-  muted:     'rgba(28,20,16,0.45)',
-  faint:     'rgba(28,20,16,0.08)',
-  surface:   '#F3EFE8',
+  muted:     'var(--txt-3)',
+  faint:     'var(--border)',
+  surface:   'var(--bg-2)',
   terracotta:'#C0533A',
   green:     '#34C759',
   red:       '#FF3B30',
@@ -373,18 +373,18 @@ function DersKonuOzeti({ ders, sinifRenk }) {
       )}
 
       {/* Ders açıklaması */}
-      <p style={{ fontFamily: dm, fontSize: 12, color: '#5A4535', lineHeight: 1.65, marginBottom: 14 }}>
+      <p style={{ fontFamily: dm, fontSize: 12, color: 'var(--txt-2)', lineHeight: 1.65, marginBottom: 14 }}>
         {ders.description || 'Bu ders için açıklama bulunmuyor.'}
       </p>
 
       {/* Flashcard özet */}
       {(ders.flashcards || []).length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#9A8A7A', marginBottom: 8, fontFamily: dm, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Temel Kavramlar</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--txt-3)', marginBottom: 8, fontFamily: dm, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Temel Kavramlar</div>
           {ders.flashcards.slice(0, 3).map((fc, i) => (
-            <div key={i} style={{ background: '#FDF6EC', border: '1px solid #D4B89633', borderRadius: 10, padding: '10px 12px', marginBottom: 6 }}>
-              <div style={{ fontFamily: 'Georgia,serif', fontSize: 12, fontWeight: 700, color: '#3D2B1F', marginBottom: 4 }}>{fc.on}</div>
-              <div style={{ fontFamily: dm, fontSize: 11, color: '#7A6A5A', lineHeight: 1.5 }}>{fc.arka}</div>
+            <div key={i} style={{ background: 'var(--bg-1)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', marginBottom: 6 }}>
+              <div style={{ fontFamily: 'Georgia,serif', fontSize: 12, fontWeight: 700, color: 'var(--txt-1)', marginBottom: 4 }}>{fc.on}</div>
+              <div style={{ fontFamily: dm, fontSize: 11, color: 'var(--txt-4)', lineHeight: 1.5 }}>{fc.arka}</div>
             </div>
           ))}
         </div>
@@ -399,7 +399,7 @@ function DersKonuOzeti({ ders, sinifRenk }) {
       ) : (
         <div style={{ background: sinifRenk + '0D', border: `1px solid ${sinifRenk}33`, borderRadius: 12, padding: '14px' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: sinifRenk, marginBottom: 8, fontFamily: dm }}>AI Konu Özeti</div>
-          <pre style={{ fontFamily: dm, fontSize: 11, color: '#3D2B1F', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{aiOzet}</pre>
+          <pre style={{ fontFamily: dm, fontSize: 11, color: 'var(--txt-1)', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{aiOzet}</pre>
         </div>
       )}
     </div>
@@ -446,8 +446,8 @@ function DersNotebookChat({ ders, sinifRenk }) {
       <div style={{ background: sinifRenk + '11', padding: '10px 14px', borderRadius: 12, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ fontSize: 24 }}>📚</div>
         <div>
-          <div style={{ fontFamily: pf, fontSize: 13, fontWeight: 700, color: '#3D2B1F' }}>Akademi Notebook (AI)</div>
-          <div style={{ fontFamily: dm, fontSize: 10, color: '#9A8A7A' }}>Bu dersin PDF arşivinden saniyeler içinde cevap alın.</div>
+          <div style={{ fontFamily: pf, fontSize: 13, fontWeight: 700, color: 'var(--txt-1)' }}>Akademi Notebook (AI)</div>
+          <div style={{ fontFamily: dm, fontSize: 10, color: 'var(--txt-3)' }}>Bu dersin PDF arşivinden saniyeler içinde cevap alın.</div>
         </div>
       </div>
 
@@ -455,7 +455,7 @@ function DersNotebookChat({ ders, sinifRenk }) {
         {messages.length === 0 ? (
           <div style={{ textAlign: 'center', marginTop: 40 }}>
             <div style={{ fontSize: 32, opacity: 0.5 }}>🔎</div>
-            <p style={{ fontFamily: dm, fontSize: 12, color: '#9A8A7A', marginTop: 10 }}>Ders arşivi yüklendi.<br/>Ne öğrenmek istersiniz?</p>
+            <p style={{ fontFamily: dm, fontSize: 12, color: 'var(--txt-3)', marginTop: 10 }}>Ders arşivi yüklendi.<br/>Ne öğrenmek istersiniz?</p>
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 20, flexWrap: 'wrap', padding: '0 10px' }}>
               <button onClick={() => setInput("Bana bu PDF'in detaylı bir özetini çıkarır mısın?")} style={{ padding: '6px 12px', borderRadius: 12, border: `1px solid ${sinifRenk}55`, background: 'transparent', color: sinifRenk, fontFamily: dm, fontSize: 11, cursor: 'pointer' }}>📝 Özet Çıkar</button>
               <button onClick={() => setInput("Sınavda çıkabilecek en önemli 5 kavram nedir?")} style={{ padding: '6px 12px', borderRadius: 12, border: `1px solid ${sinifRenk}55`, background: 'transparent', color: sinifRenk, fontFamily: dm, fontSize: 11, cursor: 'pointer' }}>⭐ Önemli Kavramlar</button>
@@ -511,8 +511,8 @@ function DersPodcast({ ders, sinifRenk }) {
             <span style={{ fontSize: 9, fontWeight: 800, color: '#FFF', fontFamily: dm }}>{b.ep}</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: 'Georgia,serif', fontSize: 11, fontWeight: 700, color: '#3D2B1F', lineHeight: 1.35 }}>{b.baslik}</div>
-            <div style={{ fontSize: 9, color: '#9A8A7A', marginTop: 3, fontFamily: dm }}>⏱ {b.sure}</div>
+            <div style={{ fontFamily: 'Georgia,serif', fontSize: 11, fontWeight: 700, color: 'var(--txt-1)', lineHeight: 1.35 }}>{b.baslik}</div>
+            <div style={{ fontSize: 9, color: 'var(--txt-3)', marginTop: 3, fontFamily: dm }}>🎧 {b.sure}</div>
           </div>
           <button onClick={() => showToast('🎧 Podcast yakında eklenecek')} style={{ width: 34, height: 34, borderRadius: '50%', background: sinifRenk, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <span style={{ color: '#FFF', fontSize: 12 }}>▶</span>
@@ -591,16 +591,16 @@ function DersIcerikModal({ ders, sinifRenk, onKapat, onQuizAc }) {
     { id: 'pdf',     emoji: '📄', label: 'PDF'         },
   ];
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(28,20,16,0.75)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--overlay)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: 420, maxHeight: '88vh', background: 'var(--bg-1)', borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column', animation: 'slideUp 0.25s ease' }}>
         <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
         {/* Modal Header */}
-        <div style={{ padding: '14px 16px 10px', flexShrink: 0, borderBottom: '1px solid rgba(28,20,16,0.08)' }}>
+        <div style={{ padding: '14px 16px 10px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={onKapat} style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(28,20,16,0.06)', border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
+            <button onClick={onKapat} style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-2)', border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--txt-1)' }}>✕</button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <span style={{ fontSize: 9, color: sinifRenk, fontWeight: 700, fontFamily: dm, letterSpacing: '0.06em' }}>{ders.code}</span>
-              <h3 style={{ margin: 0, fontFamily: 'Georgia,serif', fontSize: 13, fontWeight: 700, color: '#3D2B1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ders.name}</h3>
+              <h3 style={{ margin: 0, fontFamily: 'Georgia,serif', fontSize: 13, fontWeight: 700, color: 'var(--txt-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ders.name}</h3>
             </div>
             <div style={{ display: 'flex', gap: 5 }}>
               <button onClick={() => { onKapat(); onQuizAc && onQuizAc(ders); }}

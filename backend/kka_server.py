@@ -81,10 +81,16 @@ app = FastAPI(title="KKA Backend", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten in prod: ["https://your-frontend.vercel.app"]
+    allow_origins=[
+        "https://kultur-koruma-akademisi.web.app",
+        "https://kultur-koruma-akademisi.firebaseapp.com",
+        "http://localhost:3000",
+        "http://localhost:8001",
+        "http://127.0.0.1:3000",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
 )
 
 # ── Pydantic models ───────────────────────────────────────────────────
