@@ -250,86 +250,97 @@ function YearFilter({ active, onChange }) {
 /* ─── COURSE CARD ─────────────────────────────────────── */
 function CourseCard({ course, onIcerikAc, studyTopics }) {
   const courseXP = studyTopics?.[course.code] || 0;
-  // Varsayılan olarak bir derste kazanılan her 200 XP %100 ilerleme saysın (örneğin)
   const realCompletion = Math.min(100, Math.floor((courseXP / 200) * 100));
 
   return (
-    <div style={{
-      margin: '0 14px 10px',
-      borderRadius: '18px',
-      background: C.parchment,
-      border: `0.5px solid ${C.faint}`,
-      overflow: 'hidden',
-    }}>
-      {/* Top accent bar */}
-      <div style={{ height: '3px', background: `linear-gradient(90deg, ${course.color}, ${course.color}66)` }} />
+    <div 
+      onClick={() => onIcerikAc && onIcerikAc(course)}
+      style={{
+        margin: '0 14px 12px',
+        borderRadius: '24px',
+        background: 'var(--card-bg)',
+        border: `1px solid var(--border)`,
+        overflow: 'hidden',
+        position: 'relative',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+        cursor: 'pointer',
+        transition: 'transform 0.2s cubic-bezier(.4,0,.2,1), box-shadow 0.2s',
+        WebkitTapHighlightColor: 'transparent'
+    }}
+    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+    onTouchStart={e => e.currentTarget.style.transform = 'scale(0.98)'}
+    onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
+    >
+      {/* Background Glow */}
+      <div style={{
+        position: 'absolute', top: '-40px', right: '-40px',
+        width: '120px', height: '120px', borderRadius: '50%',
+        background: `radial-gradient(circle, ${course.color}22 0%, transparent 70%)`,
+        pointerEvents: 'none'
+      }} />
 
-      <div style={{ padding: '11px 13px 12px' }}>
+      <div style={{ padding: '16px' }}>
         {/* Header row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+          <div style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
               <span style={{
-                fontFamily: dm, fontSize: '9px', fontWeight: 700,
-                color: course.color, letterSpacing: '0.06em',
-                background: `${course.color}18`, borderRadius: '4px', padding: '1px 5px',
+                fontFamily: dm, fontSize: '10px', fontWeight: 800,
+                color: course.color, letterSpacing: '0.08em',
+                background: `${course.color}15`, borderRadius: '6px', padding: '3px 6px',
               }}>
                 {course.code}
               </span>
-              <span style={{ fontFamily: dm, fontSize: '9px', color: C.muted, fontWeight: 600 }}>
-                {courseXP > 0 ? `${courseXP} XP Kazanıldı` : 'Henüz başlanmadı'}
+              <span style={{ fontFamily: dm, fontSize: '10px', color: 'var(--txt-3)', fontWeight: 600 }}>
+                {courseXP > 0 ? `${courseXP} XP` : 'Başlanmadı'}
               </span>
             </div>
             <p style={{
-              fontFamily: pf, fontSize: '12.5px', fontWeight: 600, color: C.charcoal,
-              lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              maxWidth: '170px',
+              fontFamily: pf, fontSize: '15px', fontWeight: 700, color: 'var(--txt-1)',
+              lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
             }}>
               {course.name}
             </p>
           </div>
+          
           {/* Completion ring */}
-          <div style={{ position: 'relative', width: '38px', height: '38px', flexShrink: 0 }}>
-            <svg width="38" height="38" viewBox="0 0 38 38">
-              <circle cx="19" cy="19" r="15" fill="none" stroke={C.faint} strokeWidth="3"/>
-              <circle cx="19" cy="19" r="15" fill="none" stroke={course.color} strokeWidth="3"
-                strokeDasharray={`${2*Math.PI*15}`}
-                strokeDashoffset={`${2*Math.PI*15*(1-realCompletion/100)}`}
-                strokeLinecap="round" transform="rotate(-90 19 19)"
-                style={{ transition: 'stroke-dashoffset 1s ease' }}/>
+          <div style={{ position: 'relative', width: '46px', height: '46px', flexShrink: 0 }}>
+            <svg width="46" height="46" viewBox="0 0 46 46">
+              <circle cx="23" cy="23" r="19" fill="none" stroke="var(--border)" strokeWidth="3.5"/>
+              <circle cx="23" cy="23" r="19" fill="none" stroke={course.color} strokeWidth="3.5"
+                strokeDasharray={`${2*Math.PI*19}`}
+                strokeDashoffset={`${2*Math.PI*19*(1-realCompletion/100)}`}
+                strokeLinecap="round" transform="rotate(-90 23 23)"
+                style={{ transition: 'stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)' }}/>
             </svg>
             <span style={{
               position: 'absolute', top: '50%', left: '50%',
               transform: 'translate(-50%,-50%)',
-              fontFamily: dm, fontSize: '8px', fontWeight: 700, color: course.color,
+              fontFamily: dm, fontSize: '10px', fontWeight: 800, color: 'var(--txt-1)',
             }}>
               {realCompletion}%
             </span>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div style={{ height: '4px', borderRadius: '999px', background: C.faint, overflow: 'hidden', marginTop: '4px' }}>
-          <div style={{
-            height: '100%', borderRadius: '999px',
-            width: `${realCompletion}%`,
-            background: `linear-gradient(90deg, ${course.color}99, ${course.color})`,
-            transition: 'width 1s ease',
-          }} />
-        </div>
-
         {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-          <span style={{ fontFamily: dm, fontSize: '9.5px', color: C.muted }}>
-            {course.done}/{course.lessons} ders tamamlandı
-          </span>
-          <button onClick={() => onIcerikAc && onIcerikAc(course)} style={{
-            fontFamily: dm, fontSize: '10px', fontWeight: 600,
-            color: course.color, background: 'none', border: 'none', cursor: 'pointer',
-            WebkitTapHighlightColor: 'transparent',
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '14px', filter: 'grayscale(0.2)' }}>🎓</span>
+            <span style={{ fontFamily: dm, fontSize: '11px', color: 'var(--txt-3)', fontWeight: 500 }}>
+              Prof. {course.instructor.split(' ').pop()}
+            </span>
+          </div>
+          
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '4px',
+            fontFamily: dm, fontSize: '11px', fontWeight: 700,
+            color: course.color, background: `${course.color}11`,
+            padding: '6px 12px', borderRadius: '12px',
           }}>
-            İçerik Merkezi →
-          </button>
+            İçerik Merkezi <span style={{ fontSize: '14px', marginLeft: '2px' }}>→</span>
+          </div>
         </div>
       </div>
     </div>
@@ -619,40 +630,57 @@ function DersIcerikModal({ ders, sinifRenk, onKapat, onQuizAc }) {
     { id: 'pdf',     emoji: '📄', label: 'PDF'         },
   ];
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--overlay)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div style={{ width: '100%', maxWidth: 420, maxHeight: '88vh', background: 'var(--bg-1)', borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column', animation: 'slideUp 0.25s ease' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 420, maxHeight: '92vh', background: 'var(--bg-1)', borderRadius: '32px 32px 0 0', display: 'flex', flexDirection: 'column', animation: 'slideUp 0.35s cubic-bezier(.2,1,.3,1)', boxShadow: '0 -10px 40px rgba(0,0,0,0.2)' }}>
         <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+        
+        {/* Drag Handle */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+          <div style={{ width: '40px', height: '5px', background: 'var(--border)', borderRadius: '999px' }} />
+        </div>
+
         {/* Modal Header */}
-        <div style={{ padding: '14px 16px 10px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={onKapat} style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-2)', border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--txt-1)' }}>✕</button>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 9, color: sinifRenk, fontWeight: 700, fontFamily: dm, letterSpacing: '0.06em' }}>{ders.code}</span>
-              <h3 style={{ margin: 0, fontFamily: 'Georgia,serif', fontSize: 13, fontWeight: 700, color: 'var(--txt-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ders.name}</h3>
-            </div>
-            <div style={{ display: 'flex', gap: 5 }}>
-              <button onClick={() => { onKapat(); onQuizAc && onQuizAc(ders); }}
-                style={{ fontSize: 10, background: sinifRenk + '22', color: sinifRenk, border: `1px solid ${sinifRenk}44`, borderRadius: 6, padding: '5px 9px', cursor: 'pointer', fontWeight: 700, fontFamily: dm }}>Quiz →</button>
-            </div>
+        <div style={{ padding: '4px 20px 16px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
+            <span style={{ fontSize: '11px', color: sinifRenk, fontWeight: 800, fontFamily: dm, letterSpacing: '0.08em', background: `${sinifRenk}15`, padding: '4px 8px', borderRadius: '8px', display: 'inline-block', marginBottom: '8px' }}>{ders.code}</span>
+            <h3 style={{ margin: 0, fontFamily: pf, fontSize: '20px', fontWeight: 700, color: 'var(--txt-1)', lineHeight: 1.2 }}>{ders.name}</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+            <button onClick={onKapat} style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--bg-2)', border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--txt-1)', transition: 'background 0.2s' }}>✕</button>
+            <button onClick={() => { onKapat(); onQuizAc && onQuizAc(ders); }}
+              style={{ fontSize: 11, background: `linear-gradient(135deg, ${sinifRenk}, ${sinifRenk}dd)`, color: '#FFF', border: 'none', borderRadius: '12px', padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontFamily: dm, boxShadow: `0 4px 12px ${sinifRenk}44` }}>Quiz'e Git →</button>
           </div>
         </div>
+
         {/* Sekme Bar */}
-        <div style={{ display: 'flex', background: 'var(--bg-2)', borderRadius: 10, padding: 3, gap: 2, margin: '10px 16px 0', flexShrink: 0 }}>
-          {ICERIK_SEKME.map(s => (
-            <button key={s.id} onClick={() => setSekme(s.id)}
-              style={{ flex: 1, padding: '7px 2px', borderRadius: 8, border: 'none', cursor: 'pointer', background: sekme === s.id ? 'var(--card-bg)' : 'transparent', boxShadow: sekme === s.id ? '0 1px 4px var(--shadow)' : 'none', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <span style={{ fontSize: 14 }}>{s.emoji}</span>
-              <span style={{ fontSize: 9, fontWeight: sekme === s.id ? 700 : 400, color: sekme === s.id ? 'var(--txt-1)' : 'var(--txt-3)', fontFamily: 'Georgia,serif' }}>{s.label}</span>
-            </button>
-          ))}
+        <div style={{ overflowX: 'auto', padding: '0 20px 12px' }} className="scrollbar-hide">
+          <div style={{ display: 'inline-flex', background: 'var(--bg-2)', borderRadius: '16px', padding: '4px', gap: '4px' }}>
+            {ICERIK_SEKME.map(s => (
+              <button key={s.id} onClick={() => setSekme(s.id)}
+                style={{ 
+                  padding: '10px 16px', borderRadius: '12px', border: 'none', cursor: 'pointer', 
+                  background: sekme === s.id ? 'var(--bg-1)' : 'transparent', 
+                  boxShadow: sekme === s.id ? '0 2px 10px rgba(0,0,0,0.05)' : 'none', 
+                  transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: '8px',
+                  whiteSpace: 'nowrap'
+                }}>
+                <span style={{ fontSize: '16px' }}>{s.emoji}</span>
+                <span style={{ fontSize: '13px', fontWeight: sekme === s.id ? 700 : 500, color: sekme === s.id ? 'var(--txt-1)' : 'var(--txt-3)', fontFamily: dm }}>{s.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
+
         {/* İçerik Alanı */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 20px' }} className="scrollbar-hide">
-          {sekme === 'ozet'     && <DersKonuOzeti ders={ders} sinifRenk={sinifRenk}/>}
-          {sekme === 'notebook' && <DersNotebookChat ders={ders} sinifRenk={sinifRenk}/>}
-          {sekme === 'podcast'  && <DersPodcast   ders={ders} sinifRenk={sinifRenk}/>}
-          {sekme === 'video'    && <DersVideo     ders={ders} sinifRenk={sinifRenk}/>}
-          {sekme === 'pdf'      && <DersPdf       ders={ders} sinifRenk={sinifRenk}/>}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px', position: 'relative' }} className="scrollbar-hide">
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+            {sekme === 'ozet'     && <DersKonuOzeti ders={ders} sinifRenk={sinifRenk}/>}
+            {sekme === 'notebook' && <DersNotebookChat ders={ders} sinifRenk={sinifRenk}/>}
+            {sekme === 'podcast'  && <DersPodcast   ders={ders} sinifRenk={sinifRenk}/>}
+            {sekme === 'video'    && <DersVideo     ders={ders} sinifRenk={sinifRenk}/>}
+            {sekme === 'pdf'      && <DersPdf       ders={ders} sinifRenk={sinifRenk}/>}
+          </div>
         </div>
       </div>
     </div>
@@ -1098,75 +1126,69 @@ function FlashcardModule({ onClose }) {
 /* ─── GAMIFICATION SECTION ────────────────────────────── */
 function GamificationSection() {
   const { xp, level, levelPct, addXP } = useXP();
-  const [mode, setMode] = useState(null); // null | 'quiz' | 'flashcard'
+  const [mode, setMode] = useState(null);
 
   return (
     <>
-      {/* Quiz modal */}
       {mode === 'quiz' && <QuizModule onClose={() => setMode(null)} />}
-
-      {/* Flashcard modal */}
       {mode === 'flashcard' && <FlashcardModule onClose={() => setMode(null)} />}
 
-      <div style={{ margin: '0 14px 10px' }}>
-        {/* Section header */}
+      <div style={{ margin: '0 14px 20px' }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: '10px',
+          marginBottom: '16px',
         }}>
-          <h2 style={{ fontFamily: pf, fontSize: '14px', fontWeight: 700, color: C.charcoal }}>
+          <h2 style={{ fontFamily: pf, fontSize: '18px', fontWeight: 700, color: 'var(--txt-1)' }}>
             Bil Bakalım & Kartlar
           </h2>
-          {/* Streak/XP mini badge */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '4px',
-            background: `${C.gold}12`,
-            border: `0.5px solid rgba(184,148,74,0.25)`,
-            borderRadius: '999px', padding: '3px 8px',
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: `linear-gradient(135deg, ${C.gold}33, ${C.goldLight}11)`,
+            border: `1px solid ${C.gold}44`,
+            borderRadius: '12px', padding: '6px 12px',
           }}>
-            <span style={{ fontSize: '10px' }}>⚡</span>
-            <span style={{ fontFamily: dm, fontSize: '10px', fontWeight: 700, color: C.gold }}>
-              Seviye {level}
+            <span style={{ fontSize: '14px' }}>⚡</span>
+            <span style={{ fontFamily: dm, fontSize: '12px', fontWeight: 800, color: C.goldLight }}>
+              Lv. {level}
             </span>
           </div>
         </div>
 
-        {/* Two action cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           {/* Quiz card */}
           <button onClick={() => setMode('quiz')}
             style={{
-              borderRadius: '18px', padding: '14px 12px',
-              background: C.charcoal,
-              border: `0.5px solid rgba(184,148,74,0.2)`,
+              borderRadius: '24px', padding: '18px 16px',
+              background: 'var(--card-bg)',
+              border: `1px solid var(--border)`,
               cursor: 'pointer', textAlign: 'left',
               WebkitTapHighlightColor: 'transparent',
-              transition: 'transform 0.15s ease',
+              transition: 'all 0.2s cubic-bezier(.4,0,.2,1)',
               position: 'relative', overflow: 'hidden',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
             }}
-            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-            onTouchStart={e => e.currentTarget.style.transform = 'scale(0.97)'}
-            onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.02)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.04)'; }}
+            onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.02)'; }}
+            onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.04)'; }}
           >
             <div style={{
-              position: 'absolute', top: '-10px', right: '-10px',
-              width: '50px', height: '50px', borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(184,148,74,0.15) 0%, transparent 70%)',
+              position: 'absolute', top: '-20px', right: '-20px',
+              width: '80px', height: '80px', borderRadius: '50%',
+              background: `radial-gradient(circle, ${C.green}15 0%, transparent 70%)`,
             }} />
-            <div style={{ fontSize: '22px', marginBottom: '8px' }}>🧠</div>
-            <p style={{ fontFamily: dm, fontSize: '11px', fontWeight: 700, color: C.parchment, marginBottom: '3px' }}>
+            <div style={{ fontSize: '28px', marginBottom: '12px', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }}>🧠</div>
+            <p style={{ fontFamily: dm, fontSize: '13px', fontWeight: 800, color: 'var(--txt-1)', marginBottom: '4px' }}>
               Bil Bakalım
             </p>
-            <p style={{ fontFamily: dm, fontSize: '9.5px', color: 'rgba(250,247,242,0.45)' }}>
+            <p style={{ fontFamily: dm, fontSize: '11px', color: 'var(--txt-3)', marginBottom: '12px' }}>
               {QUIZ_QUESTIONS.length} soru
             </p>
             <div style={{
-              marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '3px',
-              background: `${C.gold}20`, borderRadius: '999px', padding: '3px 7px',
+              display: 'inline-flex', alignItems: 'center', gap: '3px',
+              background: `${C.gold}15`, borderRadius: '8px', padding: '4px 8px',
             }}>
-              <span style={{ fontFamily: dm, fontSize: '9px', fontWeight: 700, color: C.goldLight }}>
+              <span style={{ fontFamily: dm, fontSize: '10px', fontWeight: 800, color: C.gold }}>
                 +{XP_CORRECT} XP/soru
               </span>
             </div>
@@ -1175,86 +1197,82 @@ function GamificationSection() {
           {/* Flashcard card */}
           <button onClick={() => setMode('flashcard')}
             style={{
-              borderRadius: '18px', padding: '14px 12px',
-              background: C.sandstone,
-              border: `0.5px solid rgba(28,20,16,0.12)`,
+              borderRadius: '24px', padding: '18px 16px',
+              background: 'var(--bg-2)',
+              border: `1px solid var(--border)`,
               cursor: 'pointer', textAlign: 'left',
               WebkitTapHighlightColor: 'transparent',
-              transition: 'transform 0.15s ease',
+              transition: 'all 0.2s cubic-bezier(.4,0,.2,1)',
               position: 'relative', overflow: 'hidden',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
             }}
-            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-            onTouchStart={e => e.currentTarget.style.transform = 'scale(0.97)'}
-            onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.02)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.04)'; }}
+            onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.02)'; }}
+            onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.04)'; }}
           >
-            {/* Fold corner effect */}
             <div style={{
               position: 'absolute', top: 0, right: 0,
-              width: '20px', height: '20px',
-              background: 'linear-gradient(225deg, rgba(28,20,16,0.12) 50%, transparent 50%)',
-              borderTopRightRadius: '18px',
+              width: '32px', height: '32px',
+              background: `linear-gradient(225deg, var(--bg-1) 50%, transparent 50%)`,
+              borderBottomLeftRadius: '16px',
+              boxShadow: '-2px 2px 6px rgba(0,0,0,0.05)'
             }} />
-            <div style={{ fontSize: '22px', marginBottom: '8px' }}>🃏</div>
-            <p style={{ fontFamily: dm, fontSize: '11px', fontWeight: 700, color: C.charcoal, marginBottom: '3px' }}>
+            <div style={{ fontSize: '28px', marginBottom: '12px', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }}>🃏</div>
+            <p style={{ fontFamily: dm, fontSize: '13px', fontWeight: 800, color: 'var(--txt-1)', marginBottom: '4px' }}>
               Hafıza Kartları
             </p>
-            <p style={{ fontFamily: dm, fontSize: '9.5px', color: C.muted }}>
+            <p style={{ fontFamily: dm, fontSize: '11px', color: 'var(--txt-3)', marginBottom: '12px' }}>
               {FLASHCARDS.length} kart
             </p>
             <div style={{
-              marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '3px',
-              background: `${C.gold}15`, borderRadius: '999px', padding: '3px 7px',
-              border: `0.5px solid rgba(184,148,74,0.2)`,
+              display: 'inline-flex', alignItems: 'center', gap: '3px',
+              background: `${C.gold}15`, borderRadius: '8px', padding: '4px 8px',
             }}>
-              <span style={{ fontFamily: dm, fontSize: '9px', fontWeight: 700, color: C.gold }}>
+              <span style={{ fontFamily: dm, fontSize: '10px', fontWeight: 800, color: C.gold }}>
                 +{XP_FLASHCARD} XP/kart
               </span>
             </div>
           </button>
         </div>
 
-        {/* XP level bar */}
+        {/* Level Progress Bar */}
         <div style={{
-          borderRadius: '14px', padding: '10px 12px',
-          background: C.surface,
-          border: `0.5px solid ${C.faint}`,
+          borderRadius: '20px', padding: '16px',
+          background: 'var(--card-bg)',
+          border: `1px solid var(--border)`,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px' }}>✨</span>
-              <span style={{ fontFamily: dm, fontSize: '11px', fontWeight: 600, color: C.charcoal }}>
-                Toplam XP: {xp}
-              </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: `${C.gold}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>🏆</div>
+              <div>
+                <div style={{ fontFamily: dm, fontSize: '10px', color: 'var(--txt-3)', fontWeight: 600, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mevcut Deneyim</div>
+                <div style={{ fontFamily: dm, fontSize: '14px', fontWeight: 800, color: 'var(--txt-1)' }}>{xp} XP</div>
+              </div>
             </div>
-            <span style={{
-              fontFamily: dm, fontSize: '9px', fontWeight: 700,
-              color: C.gold, background: `${C.gold}12`,
-              borderRadius: '999px', padding: '2px 7px',
-            }}>
-              Lv.{level}
-            </span>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontFamily: dm, fontSize: '10px', color: 'var(--txt-3)', fontWeight: 600, marginBottom: '2px' }}>Hedef</div>
+              <div style={{ fontFamily: dm, fontSize: '14px', fontWeight: 800, color: C.goldLight }}>{xp + (500 - (xp % 500))} XP</div>
+            </div>
           </div>
-          <div style={{ height: '6px', borderRadius: '999px', background: C.faint, overflow: 'hidden' }}>
+          
+          <div style={{ height: '8px', borderRadius: '999px', background: 'var(--bg-2)', overflow: 'hidden' }}>
             <div style={{
               height: '100%', borderRadius: '999px',
               width: `${levelPct}%`,
-              background: `linear-gradient(90deg, ${C.gold}, ${C.goldLight})`,
-              transition: 'width 0.8s cubic-bezier(.4,0,.2,1)',
+              background: `linear-gradient(90deg, ${C.gold}, #F9D423)`,
+              transition: 'width 1s cubic-bezier(.4,0,.2,1)',
               position: 'relative',
             }}>
-              {/* Shimmer */}
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
                 backgroundSize: '200% 100%',
-                animation: 'shimmer 2s infinite',
+                animation: 'shimmer 2.5s infinite linear',
               }} />
             </div>
           </div>
-          <p style={{ fontFamily: dm, fontSize: '9px', color: C.muted, marginTop: '5px', textAlign: 'right' }}>
-            Sonraki seviye için {500 - (xp % 500)} XP
-          </p>
         </div>
       </div>
     </>
